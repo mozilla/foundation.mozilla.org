@@ -368,6 +368,11 @@ class ProductPage(AirtableMixin, FoundationMetadataPageMixin, Page):
         related_name='votes',
     )
 
+    override_translatable_fields = [
+        SynchronizedField('votes'),
+        SynchronizedField('creepiness_value'),
+    ]
+
     def get_export_fields(self):
         """
         This should be a dictionary of the fields to send to Airtable.
