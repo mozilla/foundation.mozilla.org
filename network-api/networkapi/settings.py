@@ -79,6 +79,8 @@ env = environ.Env(
     USE_CLOUDINARY=(bool, False),
     USE_S3=(bool, True),
     USE_X_FORWARDED_HOST=(bool, False),
+    WAGTAILLOCALIZE_PONTOON_GIT_URL=(str, None),
+    WAGTAILLOCALIZE_PONTOON_GIT_CLONE_DIR=(str, None),
     WEB_MONETIZATION_POINTER=(str, ''),
     XROBOTSTAG_ENABLED=(bool, False),
     XSS_PROTECTION=bool,
@@ -228,6 +230,7 @@ INSTALLED_APPS = list(filter(None, [
     # wagtail localization
     'wagtail_localize',
     'wagtail_localize.locales',
+    'wagtail_localize_git',
 
     # wagtail to airtable integration
     'wagtail_airtable',
@@ -346,6 +349,21 @@ if env('REDIS_URL'):
             }
         }
     }
+
+    RQ_QUEUES = {
+        'default': {
+            'URL': env('REDIS_URL'),
+            'DEFAULT_TIMEOUT': 500
+        },
+        # Must be a separate queue as it's limited to one item at a time
+        'wagtail_localize_pontoon.sync': {
+            'URL': env('REDIS_URL'),
+            'DEFAULT_TIMEOUT': 500
+        }
+    }
+
+    REDIS_URL = env('REDIS_URL')
+
 else:
     CACHES = {
         'default': {
@@ -426,11 +444,15 @@ USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
+# Pontoon settings
+WAGTAILLOCALIZE_GIT_SYNC_MANAGER_CLASS = 'networkapi.pontoon.CustomSyncManager'
+WAGTAILLOCALIZE_GIT_URL = env('WAGTAILLOCALIZE_PONTOON_GIT_URL')
+WAGTAILLOCALIZE_GIT_CLONE_DIR = env('WAGTAILLOCALIZE_PONTOON_GIT_CLONE_DIR')
+
 LOCALE_PATHS = (
     os.path.join(BASE_DIR, 'locale'),
     os.path.join(BASE_DIR, 'networkapi/buyersguide/templates/about/locale'),
 )
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.10/howto/static-files/
@@ -452,6 +474,7 @@ WAGTAIL_SITE_NAME = 'Mozilla Foundation'
 # Rest Framework Settings
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
+        # TODO: this may be insufficient for wagtail-localize/pontoon integration
         'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly',
     ]
 }
